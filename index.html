@@ -1,0 +1,74 @@
+<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>SENSE SFX AUDITION</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { background:#0B0F0A; color:#F5F1E6; font-family:-apple-system,Helvetica,Arial,sans-serif; padding:20px 16px 120px; }
+  h1 { font-size:28px; letter-spacing:1px; color:#C6F432; margin-bottom:4px; font-weight:900; }
+  .sub { color:#8a9280; font-size:13px; margin-bottom:24px; }
+  .group { margin-bottom:26px; background:rgba(18,24,16,.85); border:1px solid rgba(198,244,50,.18); border-radius:16px; padding:14px; }
+  .gname { font-size:16px; font-weight:800; letter-spacing:.5px; margin-bottom:2px; }
+  .gdesc { font-size:12px; color:#8a9280; margin-bottom:12px; }
+  .row { display:flex; gap:8px; }
+  .cand { flex:1; position:relative; }
+  .play { width:100%; padding:16px 0 14px; border-radius:12px; border:1.5px solid rgba(245,241,230,.25);
+    background:#1B2016; color:#F5F1E6; font-size:17px; font-weight:800; }
+  .play.playing { border-color:#C6F432; color:#C6F432; }
+  .play.picked { background:#C6F432; color:#10140D; border-color:#C6F432; }
+  .hint { text-align:center; font-size:10px; color:#6b7263; margin-top:5px; }
+  #bar { position:fixed; left:0; right:0; bottom:0; background:#10140D; border-top:1px solid rgba(198,244,50,.3);
+    padding:14px 16px calc(14px + env(safe-area-inset-bottom)); font-size:14px; }
+  #picks { color:#C6F432; font-weight:700; word-break:break-all; }
+  .how { font-size:11px; color:#8a9280; margin-top:3px; }
+</style></head><body>
+<h1>SENSE SFX AUDITION</h1>
+<div class="sub">Esports palette &middot; tap a letter to PLAY &middot; tap again while highlighted to PICK it (turns lime). One pick per sound. Screenshot the bottom bar when done.</div>
+<div id="groups"></div>
+<div id="bar"><div id="picks">picks: (none yet)</div><div class="how">tap = play &middot; tap the highlighted one again = pick &middot; screenshot this bar and send it</div></div>
+<script>
+const GROUPS = [
+ ["countdown_beat","COUNTDOWN TICK","the 3-2-1 beats before every round"],
+ ["go","GO!","round start — the drop into gameplay"],
+ ["correct","CORRECT","your answer confirmed right at reveal"],
+ ["wrong","WRONG","soft miss — must not sting"],
+ ["race_finish","RACE FINISH","the time-race sweep on results"],
+ ["win","WIN","the jackpot moment — biggest sound in the game"],
+ ["heartbeat","HEARTBEAT","last-seconds urgency / near-miss"],
+ ["payout","PAYOUT","balance counting up your money"],
+];
+const LETTERS = ["A","B","C","D","E"];
+const picks = {}; let current = null;
+const root = document.getElementById('groups');
+for (const [key,name,desc] of GROUPS) {
+  const g = document.createElement('div'); g.className = 'group';
+  g.innerHTML = '<div class="gname">'+name+'</div><div class="gdesc">'+desc+'</div>';
+  const row = document.createElement('div'); row.className = 'row';
+  for (const L of LETTERS) {
+    const c = document.createElement('div'); c.className = 'cand';
+    const b = document.createElement('button'); b.className = 'play'; b.textContent = L;
+    b.id = 'b_'+key+'_'+L;
+    const audio = new Audio('norm/'+key+'_'+L+'.mp3'); audio.preload = 'metadata';
+    b.onclick = () => {
+      if (b.classList.contains('playing')) { // second tap while highlighted = pick
+        picks[key] = L; refresh(); return;
+      }
+      if (current) { current.a.pause(); current.a.currentTime = 0; current.b.classList.remove('playing'); }
+      document.querySelectorAll('.playing').forEach(x=>x.classList.remove('playing'));
+      audio.currentTime = 0; audio.play();
+      b.classList.add('playing'); current = { a: audio, b };
+      audio.onended = () => { setTimeout(()=>b.classList.remove('playing'), 2500); };
+    };
+    c.appendChild(b); row.appendChild(c);
+  }
+  g.appendChild(row); root.appendChild(g);
+}
+function refresh() {
+  document.querySelectorAll('.picked').forEach(x=>x.classList.remove('picked'));
+  const parts = [];
+  for (const [key] of GROUPS) if (picks[key]) {
+    parts.push(key+'='+picks[key]);
+    const el = document.getElementById('b_'+key+'_'+picks[key]); if (el) el.classList.add('picked');
+  }
+  document.getElementById('picks').textContent = parts.length ? 'picks: '+parts.join('  ') : 'picks: (none yet)';
+}
+</script></body></html>
